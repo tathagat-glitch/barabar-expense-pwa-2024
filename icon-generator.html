@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Icon Generator</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .upload-area {
+            border: 2px dashed #007bff;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .upload-area:hover {
+            background: #f8f9fa;
+            border-color: #0056b3;
+        }
+        .upload-area.dragover {
+            background: #e3f2fd;
+            border-color: #1976d2;
+        }
+        #fileInput {
+            display: none;
+        }
+        .preview {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .preview img {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .generate-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            display: none;
+            margin: 20px auto;
+        }
+        .generate-btn:hover {
+            background: #0056b3;
+        }
+        .generate-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .instructions {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .icon-preview {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .icon-item {
+            text-align: center;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+        .icon-item img {
+            width: 100%;
+            height: auto;
+            border-radius: 4px;
+        }
+        .icon-item span {
+            font-size: 12px;
+            color: #666;
+            display: block;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 PWA Icon Generator</h1>
+        
+        <div class="instructions">
+            <h3>📋 Instructions:</h3>
+            <ol>
+                <li>Upload your logo image using the area below</li>
+                <li>Click "Generate PWA Icons" to create all required sizes</li>
+                <li>The icons will be downloaded automatically</li>
+            </ol>
+            <p><strong>Supported formats:</strong> PNG, JPG, JPEG, SVG, WebP</p>
+        </div>
+
+        <div class="upload-area" id="uploadArea">
+            <div>
+                <h3>📤 Drop your logo here</h3>
+                <p>or click to browse</p>
+            </div>
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+
+        <div class="preview" id="preview" style="display: none;">
+            <h3>📸 Preview:</h3>
+            <img id="previewImage" alt="Logo preview">
+        </div>
+
+        <button class="generate-btn" id="generateBtn">🚀 Generate PWA Icons</button>
+
+        <div class="icon-preview" id="iconPreview" style="display: none;">
+            <h3>📱 Generated Icons:</h3>
+            <div id="iconGrid"></div>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+        const previewImage = document.getElementById('previewImage');
+        const generateBtn = document.getElementById('generateBtn');
+        const iconPreview = document.getElementById('iconPreview');
+        const iconGrid = document.getElementById('iconGrid');
+        
+        let currentFile = null;
+
+        // Upload area events
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type.startsWith('image/')) {
+                handleFile(files[0]);
+            }
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            currentFile = file;
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                previewImage.src = e.target.result;
+                preview.style.display = 'block';
+                generateBtn.style.display = 'block';
+                iconPreview.style.display = 'none';
+            };
+            
+            reader.readAsDataURL(file);
+        }
+
+        generateBtn.addEventListener('click', async () => {
+            if (!currentFile) return;
+            
+            generateBtn.disabled = true;
+            generateBtn.textContent = '⏳ Generating...';
+            
+            try {
+                const icons = await generateIcons(currentFile);
+                displayGeneratedIcons(icons);
+                downloadIcons(icons);
+                
+                generateBtn.textContent = '✅ Icons Generated!';
+                setTimeout(() => {
+                    generateBtn.disabled = false;
+                    generateBtn.textContent = '🚀 Generate PWA Icons';
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Error generating icons:', error);
+                generateBtn.textContent = '❌ Error - Try Again';
+                generateBtn.disabled = false;
+            }
+        });
+
+        async function generateIcons(file) {
+            const sizes = {
+                'favicon-16x16.png': 16,
+                'favicon-32x32.png': 32,
+                'favicon.ico': 48,
+                'icon-72x72.png': 72,
+                'icon-96x96.png': 96,
+                'icon-128x128.png': 128,
+                'icon-144x144.png': 144,
+                'icon-152x152.png': 152,
+                'icon-192x192.png': 192,
+                'icon-384x384.png': 384,
+                'icon-512x512.png': 512,
+                'apple-touch-icon.png': 180
+            };
+
+            const icons = {};
+            
+            for (const [filename, size] of Object.entries(sizes)) {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = size;
+                canvas.height = size;
+                
+                const img = new Image();
+                await new Promise((resolve) => {
+                    img.onload = resolve;
+                    img.src = previewImage.src;
+                });
+                
+                // Calculate scaling to fit image in square
+                const scale = Math.min(size / img.width, size / img.height);
+                const scaledWidth = img.width * scale;
+                const scaledHeight = img.height * scale;
+                const x = (size - scaledWidth) / 2;
+                const y = (size - scaledHeight) / 2;
+                
+                ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+                
+                icons[filename] = canvas.toDataURL('image/png');
+            }
+            
+            return icons;
+        }
+
+        function displayGeneratedIcons(icons) {
+            iconGrid.innerHTML = '';
+            
+            Object.entries(icons).forEach(([filename, dataUrl]) => {
+                const iconItem = document.createElement('div');
+                iconItem.className = 'icon-item';
+                
+                const img = document.createElement('img');
+                img.src = dataUrl;
+                
+                const span = document.createElement('span');
+                span.textContent = filename;
+                
+                iconItem.appendChild(img);
+                iconItem.appendChild(span);
+                iconGrid.appendChild(iconItem);
+            });
+            
+            iconPreview.style.display = 'block';
+        }
+
+        function downloadIcons(icons) {
+            Object.entries(icons).forEach(([filename, dataUrl]) => {
+                const link = document.createElement('a');
+                link.href = dataUrl;
+                link.download = filename;
+                link.click();
+            });
+        }
+    </script>
+</body>
+</html>

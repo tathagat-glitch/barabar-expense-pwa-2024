@@ -1,0 +1,11 @@
+{
+  "name": "barabar-pwa-icons",
+  "version": "1.0.0",
+  "description": "PWA icon generation dependencies",
+  "scripts": {
+    "generate-icons": "node generate-pwa-icons.js"
+  },
+  "devDependencies": {
+    "sharp": "^0.33.2"
+  }
+}
