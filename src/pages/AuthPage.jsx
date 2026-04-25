@@ -218,9 +218,6 @@ export default function AuthPage() {
       <h1 className="page-title">
         {mode === 'login' ? 'Welcome back' : 'Create an account'}
       </h1>
-      <div className="mode-indicator">
-        <small className="muted">Current mode: <strong>{mode === 'login' ? 'Login' : 'Sign Up'}</strong></small>
-      </div>
       <form className="card" onSubmit={handleSubmit}>
         <label className="field">
           <span>Email</span>
