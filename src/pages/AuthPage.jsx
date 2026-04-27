@@ -100,21 +100,24 @@ export default function AuthPage() {
         }
 
         console.log('📝 Creating user with Firebase Auth...');
-        const cred = await createUserWithEmailAndPassword(
-          auth,
-          email,
-          password
-        );
-        console.log('✅ Firebase Auth user created:', cred.user.uid);
+const cred = await createUserWithEmailAndPassword(
+  auth,
+  email,
+  password
+);
+console.log('✅ Firebase Auth user created:', cred.user.uid);
 
-        console.log('📝 Reserving username in Firestore...');
-        // Reserve username (unique) first. If taken, Firestore rules will deny.
-        try {
-          await setDoc(doc(db, 'usernames', usernameKey), {
-            uid: cred.user.uid,
-            createdAt: serverTimestamp()
-          });
-          console.log('✅ Username reserved successfully');
+// ✅ Wait for auth token to propagate before Firestore writes
+await cred.user.getIdToken(true);
+
+console.log('📝 Reserving username in Firestore...');
+// Reserve username (unique) first. If taken, Firestore rules will deny.
+try {
+  await setDoc(doc(db, 'usernames', usernameKey), {
+    uid: cred.user.uid,
+    createdAt: serverTimestamp()
+  }); 
+  console.log('✅ Username reserved successfully');
         } catch (err) {
           console.error('❌ Username reservation failed:', err);
           // If username is taken or rules deny, clean up the just-created auth user.
