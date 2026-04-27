@@ -47,6 +47,7 @@ export default function GroupDetailPage({ user }) {
   const [inviteError, setInviteError] = useState('');
   const [allUsers, setAllUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [selectedMember, setSelectedMember] = useState('');
 
   const [currency, setCurrency] = useState('INR');
 
@@ -442,21 +443,55 @@ export default function GroupDetailPage({ user }) {
 
       <section className="card">
         <h2>Members</h2>
+        <label className="field">
+          <span>Select a member</span>
+          <select
+            value={selectedMember}
+            onChange={(e) => setSelectedMember(e.target.value)}
+          >
+            <option value="">View all members</option>
+            {members.map((m) => (
+              <option key={m.uid} value={m.uid}>
+                {m.username || m.email || m.uid}
+              </option>
+            ))}
+          </select>
+        </label>
         <ul className="list compact">
-          {members.map((m) => (
-            <li key={m.uid} className="list-item">
-              <span>{m.username || m.email || m.uid}</span>
-              {group.createdBy === user.uid && m.uid !== group.createdBy && (
-                <button
-                  type="button"
-                  className="icon-button"
-                  onClick={() => handleRemoveMember(m.uid)}
-                >
-                  ✕
-                </button>
-              )}
-            </li>
-          ))}
+          {selectedMember === ''
+            ? members.map((m) => (
+                <li key={m.uid} className="list-item">
+                  <span>{m.username || m.email || m.uid}</span>
+                  {group.createdBy === user.uid && m.uid !== group.createdBy && (
+                    <button
+                      type="button"
+                      className="icon-button"
+                      onClick={() => handleRemoveMember(m.uid)}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </li>
+              ))
+            : members
+                .filter((m) => m.uid === selectedMember)
+                .map((m) => (
+                  <li key={m.uid} className="list-item">
+                    <span>{m.username || m.email || m.uid}</span>
+                    {group.createdBy === user.uid && m.uid !== group.createdBy && (
+                      <button
+                        type="button"
+                        className="icon-button"
+                        onClick={() => {
+                          handleRemoveMember(m.uid);
+                          setSelectedMember('');
+                        }}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </li>
+                ))}
         </ul>
         {group.createdBy === user.uid && (
           <form onSubmit={handleInviteMember} className="form-vertical">

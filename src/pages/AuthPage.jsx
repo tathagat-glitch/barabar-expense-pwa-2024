@@ -187,6 +187,8 @@ export default function AuthPage() {
           errorMessage = 'Password is too weak. Please use at least 6 characters.';
         } else if (errorCode === 'auth/invalid-email') {
           errorMessage = 'Please enter a valid email address.';
+        } else if (errorCode === 'auth/invalid-credential') {
+          errorMessage = 'Invalid email or password format. Please check your credentials.';
         } else if (errorCode === 'auth/operation-not-allowed') {
           errorMessage = 'Email/password accounts are not enabled. Please contact support.';
         } else if (errorCode === 'auth/network-request-failed') {
