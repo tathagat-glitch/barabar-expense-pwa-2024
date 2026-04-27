@@ -138,19 +138,6 @@ export default function PasswordReset({ onBack }) {
 
         {error && <p className="error-text">{error}</p>}
         
-        {/* Debug button for development */}
-        {process.env.NODE_ENV === 'development' && (
-          <button
-            type="button"
-            className="ghost-button"
-            onClick={checkConfig}
-            disabled={busy}
-            style={{ fontSize: '12px', marginTop: '8px' }}
-          >
-            🔍 Debug Firebase Config
-          </button>
-        )}
-        
         <div className="button-group">
           <button
             type="button"
