@@ -45,6 +45,8 @@ export default function GroupDetailPage({ user }) {
   const [inviteInput, setInviteInput] = useState('');
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState('');
+  const [allUsers, setAllUsers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
 
   const [currency, setCurrency] = useState('INR');
 
@@ -137,8 +139,27 @@ export default function GroupDetailPage({ user }) {
     }
   };
 
+  const loadAllUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      const usersRef = collection(db, 'users');
+      const usersSnap = await getDocs(usersRef);
+      const usersList = usersSnap.docs.map((d) => ({
+        uid: d.id,
+        email: d.data().email || '',
+        username: d.data().username || ''
+      }));
+      setAllUsers(usersList);
+    } catch (err) {
+      console.error('Failed to load users:', err);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
   useEffect(() => {
     loadAll();
+    loadAllUsers();
   }, [groupId]);
 
   useEffect(() => {
@@ -285,53 +306,31 @@ export default function GroupDetailPage({ user }) {
   const handleInviteMember = async (e) => {
     e.preventDefault();
     setInviteError('');
-    const input = inviteInput.trim();
-    if (!input) {
-      setInviteError('Enter an email or username');
+    
+    const targetUid = inviteInput.trim();
+    if (!targetUid) {
+      setInviteError('Select a member to add');
+      return;
+    }
+
+    // Check if user is already a member
+    if (members.some((m) => m.uid === targetUid)) {
+      setInviteError('This user is already a member of the group');
       return;
     }
 
     setInviting(true);
     try {
-      let targetUid = '';
-      let targetEmail = '';
-      let targetUsername = '';
-
-      if (input.includes('@')) {
-        // Email lookup (requires users read for signed-in users)
-        const usersRef = collection(db, 'users');
-        const snap = await getDocs(
-          query(usersRef, where('email', '==', input.toLowerCase()))
-        );
-        if (snap.empty) {
-          setInviteError('No user found with that email');
-          setInviting(false);
-          return;
-        }
-        const userDoc = snap.docs[0];
-        targetUid = userDoc.id;
-        const data = userDoc.data();
-        targetEmail = data.email || '';
-        targetUsername = data.username || '';
-      } else {
-        // Username lookup via unique mapping
-        const key = input.toLowerCase();
-        const usernameSnap = await getDoc(doc(db, 'usernames', key));
-        if (!usernameSnap.exists()) {
-          setInviteError('No user found with that username');
-          setInviting(false);
-          return;
-        }
-        targetUid = usernameSnap.data().uid;
-        const profileSnap = await getDoc(doc(db, 'users', targetUid));
-        if (profileSnap.exists()) {
-          const data = profileSnap.data();
-          targetEmail = data.email || '';
-          targetUsername = data.username || input;
-        } else {
-          targetUsername = input;
-        }
+      const profileSnap = await getDoc(doc(db, 'users', targetUid));
+      if (!profileSnap.exists()) {
+        setInviteError('User not found');
+        setInviting(false);
+        return;
       }
+
+      const data = profileSnap.data();
+      const targetEmail = data.email || '';
+      const targetUsername = data.username || '';
 
       const groupRef = doc(db, 'groups', groupId);
       await updateDoc(groupRef, {
@@ -462,16 +461,26 @@ export default function GroupDetailPage({ user }) {
         {group.createdBy === user.uid && (
           <form onSubmit={handleInviteMember} className="form-vertical">
             <label className="field">
-              <span>Add member by email or username</span>
-              <input
-                type="text"
-                placeholder="email or username"
+              <span>Add registered member</span>
+              <select
                 value={inviteInput}
                 onChange={(e) => setInviteInput(e.target.value)}
-              />
+                disabled={loadingUsers}
+              >
+                <option value="">
+                  {loadingUsers ? 'Loading members...' : 'Select a member'}
+                </option>
+                {allUsers
+                  .filter((u) => !members.some((m) => m.uid === u.uid))
+                  .map((u) => (
+                    <option key={u.uid} value={u.uid}>
+                      {u.username || u.email || u.uid}
+                    </option>
+                  ))}
+              </select>
             </label>
             {inviteError && <p className="error-text">{inviteError}</p>}
-            <button className="primary-button" disabled={inviting}>
+            <button className="primary-button" disabled={inviting || loadingUsers}>
               {inviting ? 'Adding...' : 'Add to group'}
             </button>
           </form>
