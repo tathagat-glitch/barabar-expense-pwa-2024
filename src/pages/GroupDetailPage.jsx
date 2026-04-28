@@ -47,7 +47,6 @@ export default function GroupDetailPage({ user }) {
   const [inviteError, setInviteError] = useState('');
   const [allUsers, setAllUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
-  const [selectedMember, setSelectedMember] = useState('');
 
   const [currency, setCurrency] = useState('INR');
 
@@ -150,9 +149,11 @@ export default function GroupDetailPage({ user }) {
         email: d.data().email || '',
         username: d.data().username || ''
       }));
+      console.log('Loaded users:', usersList);
       setAllUsers(usersList);
     } catch (err) {
       console.error('Failed to load users:', err);
+      setInviteError('Could not load available members. Check Firestore permissions.');
     } finally {
       setLoadingUsers(false);
     }
@@ -443,80 +444,46 @@ export default function GroupDetailPage({ user }) {
 
       <section className="card">
         <h2>Members</h2>
-        <label className="field">
-          <span>Select a member</span>
-          <select
-            value={selectedMember}
-            onChange={(e) => setSelectedMember(e.target.value)}
-          >
-            <option value="">View all members</option>
-            {members.map((m) => (
-              <option key={m.uid} value={m.uid}>
-                {m.username || m.email || m.uid}
-              </option>
-            ))}
-          </select>
-        </label>
         <ul className="list compact">
-          {selectedMember === ''
-            ? members.map((m) => (
-                <li key={m.uid} className="list-item">
-                  <span>{m.username || m.email || m.uid}</span>
-                  {group.createdBy === user.uid && m.uid !== group.createdBy && (
-                    <button
-                      type="button"
-                      className="icon-button"
-                      onClick={() => handleRemoveMember(m.uid)}
-                    >
-                      ✕
-                    </button>
-                  )}
-                </li>
-              ))
-            : members
-                .filter((m) => m.uid === selectedMember)
-                .map((m) => (
-                  <li key={m.uid} className="list-item">
-                    <span>{m.username || m.email || m.uid}</span>
-                    {group.createdBy === user.uid && m.uid !== group.createdBy && (
-                      <button
-                        type="button"
-                        className="icon-button"
-                        onClick={() => {
-                          handleRemoveMember(m.uid);
-                          setSelectedMember('');
-                        }}
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </li>
-                ))}
+          {members.map((m) => (
+            <li key={m.uid} className="list-item">
+              <span>{m.username || m.email || m.uid}</span>
+              {group.createdBy === user.uid && m.uid !== group.createdBy && (
+                <button
+                  type="button"
+                  className="icon-button"
+                  onClick={() => handleRemoveMember(m.uid)}
+                >
+                  ✕
+                </button>
+              )}
+            </li>
+          ))}
         </ul>
         {group.createdBy === user.uid && (
           <form onSubmit={handleInviteMember} className="form-vertical">
             <label className="field">
-              <span>Add registered member</span>
+              <span>Add Member</span>
               <select
                 value={inviteInput}
                 onChange={(e) => setInviteInput(e.target.value)}
-                disabled={loadingUsers}
+                disabled={loadingUsers || allUsers.length === 0}
               >
                 <option value="">
-                  {loadingUsers ? 'Loading members...' : 'Select a member'}
+                  {loadingUsers ? 'Loading...' : allUsers.filter((u) => !members.some((m) => m.uid === u.uid) && u.uid !== group.createdBy).length === 0 ? 'No users available' : 'Select username'}
                 </option>
                 {allUsers
-                  .filter((u) => !members.some((m) => m.uid === u.uid))
+                  .filter((u) => !members.some((m) => m.uid === u.uid) && u.uid !== group.createdBy)
                   .map((u) => (
                     <option key={u.uid} value={u.uid}>
-                      {u.username || u.email || u.uid}
+                      {u.username || u.email}
                     </option>
                   ))}
               </select>
             </label>
             {inviteError && <p className="error-text">{inviteError}</p>}
-            <button className="primary-button" disabled={inviting || loadingUsers}>
-              {inviting ? 'Adding...' : 'Add to group'}
+            <button className="primary-button" disabled={inviting || loadingUsers || allUsers.length === 0}>
+              {inviting ? 'Adding...' : 'Add Member'}
             </button>
           </form>
         )}
