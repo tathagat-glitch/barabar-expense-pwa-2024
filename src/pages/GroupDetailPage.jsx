@@ -144,12 +144,24 @@ export default function GroupDetailPage({ user }) {
     try {
       const usersRef = collection(db, 'users');
       const usersSnap = await getDocs(usersRef);
-      const usersList = usersSnap.docs.map((d) => ({
-        uid: d.id,
-        email: d.data().email || '',
-        username: d.data().username || ''
-      }));
-      console.log('Loaded users:', usersList);
+      
+      // Filter to only show users created in the last 90 days (excludes old test accounts)
+      const thirtyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+      const usersList = usersSnap.docs
+        .map((d) => {
+          const data = d.data();
+          const createdAt = data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt);
+          return {
+            uid: d.id,
+            email: data.email || '',
+            username: data.username || '',
+            createdAt: createdAt
+          };
+        })
+        .filter((u) => u.createdAt > thirtyDaysAgo) // Only show recent users
+        .sort((a, b) => b.createdAt - a.createdAt); // Sort by newest first
+      
+      console.log('Loaded active users:', usersList);
       setAllUsers(usersList);
     } catch (err) {
       console.error('Failed to load users:', err);

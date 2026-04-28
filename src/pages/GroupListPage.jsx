@@ -69,12 +69,17 @@ export default function GroupListPage({ user }) {
         username: user.username || '',
         createdAt: serverTimestamp()
       });
+      console.log('✅ Group creator auto-added as member:', user.uid);
 
       setNewName('');
       await fetchGroups();
     } catch (err) {
-      console.error(err);
-      setError('Failed to create group');
+      console.error('Error creating group:', err);
+      console.error('Error details:', {
+        code: err.code,
+        message: err.message
+      });
+      setError('Failed to create group: ' + err.message);
     } finally {
       setCreating(false);
     }
